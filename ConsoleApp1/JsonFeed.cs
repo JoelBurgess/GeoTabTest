@@ -11,14 +11,16 @@ namespace ConsoleApp1
     class JsonFeed
     {
         static string _url = "";
+        private readonly int _results;
 
         public JsonFeed() { }
         public JsonFeed(string endpoint, int results)
         {
             _url = endpoint;
+            _results = results;
         }
         
-		public static string[] GetRandomJokes(string firstname, string lastname, string category)
+		public IEnumerable<string> GetRandomJokes(string firstname, string lastname, string category)
 		{
 			HttpClient client = new HttpClient();
 			client.BaseAddress = new Uri(_url);
@@ -32,17 +34,17 @@ namespace ConsoleApp1
 				url += category;
 			}
 
-            string joke = Task.FromResult(client.GetStringAsync(url).Result).Result;
-
-            if (firstname != null && lastname != null)
+            for (int i = 0; i < _results; i++)
             {
-                int index = joke.IndexOf("Chuck Norris");
-                string firstPart = joke.Substring(0, index);
-                string secondPart = joke.Substring(0 + index + "Chuck Norris".Length, joke.Length - (index + "Chuck Norris".Length));
-                joke = firstPart + " " + firstname + " " + lastname + secondPart;
-            }
+                string joke = Task.FromResult(client.GetStringAsync(url).Result).Result;
 
-            return new string[] { JsonConvert.DeserializeObject<dynamic>(joke).value };
+                if (firstname != null && lastname != null)
+                {
+                    joke = joke.Replace("Chuck Norris", $"{firstname} {lastname}");
+                }
+
+                yield return JsonConvert.DeserializeObject<dynamic>(joke).value;
+            }
         }
 
         /// <summary>
@@ -63,7 +65,7 @@ namespace ConsoleApp1
 			HttpClient client = new HttpClient();
 			client.BaseAddress = new Uri(_url);
 
-			return new string[] { Task.FromResult(client.GetStringAsync("categories").Result).Result };
+			return new string[] { Task.FromResult(client.GetStringAsync("jokes/categories").Result).Result };
 		}
     }
 }

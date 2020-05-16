@@ -35,8 +35,13 @@ namespace ConsoleApp1
                         printer.Value("Want to use a random name? y/n").ToString();
                         GetEnteredKey(Console.ReadKey());
                         if (key == 'y')
+                        {
                             GetNames();
+                        }
+
                         printer.Value("Want to specify a category? y/n").ToString();
+                        GetEnteredKey(Console.ReadKey());
+
                         if (key == 'y')
                         {
                             printer.Value("How many jokes do you want? (1-9)").ToString();
@@ -104,13 +109,16 @@ namespace ConsoleApp1
                 case ConsoleKey.Y:
                     key = 'y';
                     break;
+                case ConsoleKey.N:
+                    key = 'n';
+                    break;
             }
         }
 
         private static void GetRandomJokes(string category, int number)
         {
-            new JsonFeed("https://api.chucknorris.io", number);
-            results = JsonFeed.GetRandomJokes(names?.Item1, names?.Item2, category);
+            var feed = new JsonFeed("https://api.chucknorris.io", number);
+            results = feed.GetRandomJokes(names?.Item1, names?.Item2, category).ToArray();
         }
 
         private static void getCategories()
