@@ -1,137 +1,56 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
 using System.Text;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
+using JokeGenerator.Feeds;
 
-namespace ConsoleApp1
+namespace JokeGenerator
 {
+    //TODO: Summaries
+    //TODO: Error handling
+
     class Program
     {
-        static string[] results = new string[50];
-        static char key;
-        static Tuple<string, string> names;
-        static ConsolePrinter printer = new ConsolePrinter();
+        private static readonly Lazy<IList<string>> LazyCategories = new Lazy<IList<string>>(() => new ChuckNorrisJsonFeed().GetCategories());
+        private static IList<string> Categories => LazyCategories.Value;
 
+        //TODO: Args
         static void Main(string[] args)
         {
-            printer.Value("Press ? to get instructions.").ToString();
-            if (Console.ReadLine() == "?")
+            var consoleHelper = new ConsoleHelper(Encoding.UTF8); // Windows console defaults to ASCII, which doesn't play nice with some of the random names.
+            consoleHelper.WriteLine($"Welcome to Joke Company's Chuck Norris Joke Generator.{Environment.NewLine}");
+
+            var getMoreJokes = true;
+            
+            while (getMoreJokes)
             {
-                while (true)
+                try
                 {
-                    printer.Value("Press c to get categories").ToString();
-                    printer.Value("Press r to get random jokes").ToString();
-                    GetEnteredKey(Console.ReadKey());
-                    if (key == 'c')
-                    {
-                        getCategories();
-                        PrintResults();
-                    }
-                    if (key == 'r')
-                    {
-                        printer.Value("Want to use a random name? y/n").ToString();
-                        GetEnteredKey(Console.ReadKey());
-                        if (key == 'y')
-                        {
-                            GetNames();
-                        }
+                    var useReplacementName = consoleHelper.IsResponseYes("Would you like to use a random name?");
+                    var useCategory = consoleHelper.IsResponseYes("Would you like to specify a category?");
+                    var category = useCategory ? consoleHelper.PromptForListSelection("Available categories:", Categories) : null;
+                    var numberOfJokes = consoleHelper.PromptForDigit("How many jokes would you like?");
 
-                        printer.Value("Want to specify a category? y/n").ToString();
-                        GetEnteredKey(Console.ReadKey());
+                    consoleHelper.WriteLine("Thinking up some good jokes..."); // API could be a little slow, so show a 'Reticulating Splines' message :).
 
-                        if (key == 'y')
-                        {
-                            printer.Value("How many jokes do you want? (1-9)").ToString();
-                            int n = Int32.Parse(Console.ReadLine());
-                            printer.Value("Enter a category;").ToString();
-                            GetRandomJokes(Console.ReadLine(), n);
-                            PrintResults();
-                        }
-                        else
-                        {
-                            printer.Value("How many jokes do you want? (1-9)").ToString();
-                            int n = Int32.Parse(Console.ReadLine());
-                            GetRandomJokes(null, n);
-                            PrintResults();
-                        }
-                    }
-                    names = null;
+                    var jokes = JokeHelper.GetRandomJokes(category, numberOfJokes, useReplacementName);
+                    consoleHelper.PrintResults(jokes);
+
+                    getMoreJokes = consoleHelper.IsResponseYes("Would you like more jokes?");
                 }
-            }
+                catch (Exception e)
+                {
+                    consoleHelper.WriteLine("Sorry, an error occurred. If this continues, please contact Joke Company support.");
+                    consoleHelper.WriteLine("\"It works on my machine\" always holds true for Chuck Norris.");
+                    Log(e);
+                }
 
-        }
-
-        private static void PrintResults()
-        {
-            printer.Value("[" + string.Join(",", results) + "]").ToString();
-        }
-
-        private static void GetEnteredKey(ConsoleKeyInfo consoleKeyInfo)
-        {
-            switch (consoleKeyInfo.Key)
-            {
-                case ConsoleKey.C:
-                    key = 'c';
-                    break;
-                case ConsoleKey.D0:
-                    key = '0';
-                    break;
-                case ConsoleKey.D1:
-                    key = '1';
-                    break;
-                case ConsoleKey.D3:
-                    key = '3';
-                    break;
-                case ConsoleKey.D4:
-                    key = '4';
-                    break;
-                case ConsoleKey.D5:
-                    key = '5';
-                    break;
-                case ConsoleKey.D6:
-                    key = '6';
-                    break;
-                case ConsoleKey.D7:
-                    key = '7';
-                    break;
-                case ConsoleKey.D8:
-                    key = '8';
-                    break;
-                case ConsoleKey.D9:
-                    key = '9';
-                    break;
-                case ConsoleKey.R:
-                    key = 'r';
-                    break;
-                case ConsoleKey.Y:
-                    key = 'y';
-                    break;
-                case ConsoleKey.N:
-                    key = 'n';
-                    break;
             }
         }
 
-        private static void GetRandomJokes(string category, int number)
+        private static void Log(Exception exception)
         {
-            var feed = new JsonFeed("https://api.chucknorris.io", number);
-            results = feed.GetRandomJokes(names?.Item1, names?.Item2, category).ToArray();
-        }
-
-        private static void getCategories()
-        {
-            new JsonFeed("https://api.chucknorris.io", 0);
-            results = JsonFeed.GetCategories();
-        }
-
-        private static void GetNames()
-        {
-            new JsonFeed("https://names.privserv.com/api/", 0);
-            dynamic result = JsonFeed.Getnames();
-            names = Tuple.Create(result.name.ToString(), result.surname.ToString());
+            //TODO: This
+            throw new NotImplementedException();
         }
     }
 }
